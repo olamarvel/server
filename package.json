@@ -19,7 +19,8 @@
   },
   "scripts": {
     "dev": "nodemon index.js",
-    "test": "jest"
+    "test": "jest",
+    "start": "node index.js"
   },
   "author": "olamarvel",
   "license": "ISC",
