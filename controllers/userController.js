@@ -29,7 +29,7 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
  const { username, password } = req.body
-
+  console.log(req.body);
  try {
   // Fetch the user with the provided username
   const query = `*[_type == "user" && username == $username]`
