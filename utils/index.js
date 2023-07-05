@@ -1,7 +1,7 @@
 function isToday(dateString) {
  try {
   const date = new Date(dateString)
-  if (isNaN(date)) {
+  if (isNaN(date.getTime())) {
    console.error('Invalid date string: ', dateString)
    return false
   }
