@@ -53,7 +53,7 @@ exports.login = async (req, res) => {
      expiresIn: '1h', // Token will expire in 1 hour
     })
 
-    res.json({ token, message: 'Logged in' })
+    res.json({ token, message: 'Logged in',click:user.click })
    } else {
     res.status(401).json({ message: 'Invalid credentials' })
    }
