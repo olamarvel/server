@@ -29,11 +29,11 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
  const { username, password } = req.body
-  console.log(req.body);
+ console.log(req.body)
  try {
   if (!username || !password) {
-    res.status(400).json({ message: 'Invalid username or password' });
-    return;
+   res.status(400).json({ message: 'Invalid username or password' })
+   return
   }
   // Fetch the user with the provided username
   const query = `*[_type == "user" && username == $username]`
@@ -57,7 +57,7 @@ exports.login = async (req, res) => {
      expiresIn: '1h', // Token will expire in 1 hour
     })
 
-    res.json({ token, message: 'Logged in',click:user.click })
+    res.json({ token, message: 'Logged in', click: user.click })
    } else {
     res.status(401).json({ message: 'Invalid credentials' })
    }
@@ -118,21 +118,32 @@ exports.addUrl = async (req, res) => {
    })
 
    await userTransaction.commit()
-   
-  res.json({ message: 'stat_created:URL added',click:statsDoc.click })
+
+   res.json({ message: 'stat_created:URL added', click: statsDoc.click })
   } else {
    // Update existing stats document for today's userStat
    if (user?.userStat[userStatIndex]?.ids?.includes(url)) {
-    res.status(400).json({ message: 'URL already exists', click:user?.userStat[userStatIndex]?.click })
+    res.status(400).json({
+     message: 'URL already exists',
+     click: user?.userStat[userStatIndex]?.click,
+    })
     return
    }
 
    const statsId = user.userStat[userStatIndex]._id
-   const statsTransaction = await client.patch(statsId).set({ ids: [...user.userStat[userStatIndex].ids, url] }).inc({ click: 1 }).commit()
-   console.log(`statsTransaction`, statsTransaction);
+   const statsTransaction = client.transaction().patch(statsId, patch => {
+    patch.set({ ids: [...user.userStat[userStatIndex].ids, url] })
+    patch.inc({ click: 1 })
+    return patch
+   })
 
-  res.json({ message: 'stat_updated:URL added',click:statsTransaction.click })
-  //  await statsTransaction.commit()
+   console.log(`statsTransaction`, await statsTransaction.commit())
+
+   res.json({
+    message: 'stat_updated:URL added',
+    click: statsTransaction.click,
+   })
+   //  await statsTransaction.commit()
   }
  } catch (error) {
   console.log(error)
@@ -141,46 +152,46 @@ exports.addUrl = async (req, res) => {
 }
 
 exports.fetchUserStats = async (req, res) => {
-  const { id } = req.user;
+ const { id } = req.user
 
-  try {
-    // Fetch the user's stats
-    const userQuery = `*[_type == "user" && _id == "${id}"] {
+ try {
+  // Fetch the user's stats
+  const userQuery = `*[_type == "user" && _id == "${id}"] {
       _id,
       userStat[]-> {
         _id,
         click,
         createdAt,
       },
-    }`;
-    const users = await client.fetch(userQuery);
+    }`
+  const users = await client.fetch(userQuery)
 
-    if (!users || users.length === 0) {
-      res.status(404).json({ message: 'User not found' });
-      return;
-    }
-
-    const user = users[0];
-
-    if (!user.userStat) {
-      user.userStat = [];
-    }
-
-    // Get today's userStat if it exists
-    const todayStat = user.userStat.find(stat => isToday(stat.createdAt));
-    console.log(todayStat,user.userStat)
-    const clickData = {
-      totalClicks: todayStat ? todayStat.click : 0,
-      stats: user.userStat.map(stat => ({
-        id: stat._id,
-        click: stat.click,
-        createdAt: stat.createdAt,
-      })),
-    };
-
-    res.json(clickData);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error fetching user stats' });
+  if (!users || users.length === 0) {
+   res.status(404).json({ message: 'User not found' })
+   return
   }
-};
+
+  const user = users[0]
+
+  if (!user.userStat) {
+   user.userStat = []
+  }
+
+  // Get today's userStat if it exists
+  const todayStat = user.userStat.find(stat => isToday(stat.createdAt))
+  console.log(todayStat, user.userStat)
+  const clickData = {
+   totalClicks: todayStat ? todayStat.click : 0,
+   stats: user.userStat.map(stat => ({
+    id: stat._id,
+    click: stat.click,
+    createdAt: stat.createdAt,
+   })),
+  }
+
+  res.json(clickData)
+ } catch (error) {
+  console.error(error)
+  res.status(500).json({ message: 'Error fetching user stats' })
+ }
+}
