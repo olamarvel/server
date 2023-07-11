@@ -26,10 +26,17 @@ exports.register = async (req, res) => {
   res.status(500).json({ message: 'Error registering user' })
  }
 }
-
+const calculateTokenExpiration = () => {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+  const expiresIn = Math.floor((midnight.getTime() - now.getTime()) / 1000);
+  return expiresIn;
+};
 exports.login = async (req, res) => {
  const { username, password } = req.body
  console.log(req.body)
+ const expiresIn = calculateTokenExpiration(); // Calculate expiration to midnight
+
  try {
   if (!username || !password) {
    res.status(400).json({ message: 'Invalid username or password' })
@@ -54,7 +61,7 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
-     expiresIn: '1h', // Token will expire in 1 hour
+     expiresIn, // Token will expire in 1 hour
     })
 
     res.json({ token, message: 'Logged in', click: user.click })
@@ -195,3 +202,7 @@ exports.fetchUserStats = async (req, res) => {
   res.status(500).json({ message: 'Error fetching user stats' })
  }
 }
+
+//aytosave
+//token expise done
+// username frontend
