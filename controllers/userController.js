@@ -27,15 +27,23 @@ exports.register = async (req, res) => {
  }
 }
 const calculateTokenExpiration = () => {
-  const now = new Date();
-  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
-  const expiresIn = Math.floor((midnight.getTime() - now.getTime()) / 1000);
-  return expiresIn;
-};
+ const now = new Date()
+ const midnight = new Date(
+  now.getFullYear(),
+  now.getMonth(),
+  now.getDate() + 1,
+  0,
+  0,
+  0,
+  0
+ )
+ const expiresIn = Math.floor((midnight.getTime() - now.getTime()) / 1000)
+ return expiresIn
+}
 exports.login = async (req, res) => {
  const { username, password } = req.body
  console.log(req.body)
- const expiresIn = calculateTokenExpiration(); // Calculate expiration to midnight
+ const expiresIn = calculateTokenExpiration() // Calculate expiration to midnight
 
  try {
   if (!username || !password) {
@@ -138,11 +146,11 @@ exports.addUrl = async (req, res) => {
    }
 
    const statsId = user.userStat[userStatIndex]._id
-   const statsTransaction = await client.patch(statsId, patch => {
-    patch.set({ ids: [...user.userStat[userStatIndex].ids, url] })
-    patch.inc({ click: 1 })
-    return patch
-   }).commit()
+   const statsTransaction = await client
+    .patch(statsId)
+    .append('ids', [url])
+    .inc({ click: 1 })
+    .commit()
 
    console.log(`statsTransaction`, statsTransaction)
 
