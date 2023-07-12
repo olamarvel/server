@@ -138,13 +138,13 @@ exports.addUrl = async (req, res) => {
    }
 
    const statsId = user.userStat[userStatIndex]._id
-   const statsTransaction = client.transaction().patch(statsId, patch => {
+   const statsTransaction = await client.patch(statsId, patch => {
     patch.set({ ids: [...user.userStat[userStatIndex].ids, url] })
     patch.inc({ click: 1 })
     return patch
-   })
+   }).commit()
 
-   console.log(`statsTransaction`, await statsTransaction.commit())
+   console.log(`statsTransaction`, statsTransaction)
 
    res.json({
     message: 'stat_updated:URL added',
