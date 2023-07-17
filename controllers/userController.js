@@ -110,7 +110,7 @@ exports.addUrl = async (req, res) => {
   // Check if the userStat for today already exists
   // Get today's date in "YYYY-MM-DD" format
   const userStatIndex = user?.userStat?.findIndex(stat =>
-   isToday(stat.createdAt)
+   isToday(stat?._createdAt)
   )
   console.log(userStatIndex)
   if (userStatIndex === -1) {
