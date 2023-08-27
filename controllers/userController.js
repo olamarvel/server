@@ -71,7 +71,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
      expiresIn, // Token will expire in 1 hour
     })
-
+    //TODO
     res.json({ token, message: 'Logged in', click: user.click })
    } else {
     res.status(401).json({ message: 'Invalid credentials' })
@@ -90,62 +90,38 @@ exports.addUrl = async (req, res) => {
  const { id } = req.user
 
  try {
-  // Fetch the user
-  const userQuery = `*[_type == "user" && _id=="${id}"]{
-    _id,
-      userStat[]->
-    }`
-  const users = await client.fetch(userQuery)
-  console.log(id, url, users, userQuery)
-  // For simplicity, we're just using the first user
-  const user = users[0]
+  
+  const stasQuery = `*[_type == "stats" && userId._ref == "${id}" && dateTime(_createdAt) > dateTime(now()) - 60*60*24]|order(_createdAt,desc)[0]`
+  const stats = await client.fetch(stasQuery)
+  console.log(id, url, stats, stasQuery)
 
-  if (!user) {
-   res.status(401).send('User not found')
-   return
-  } else if (!user.userStat) {
-   user.userStat = []
-  }
-
-  // Check if the userStat for today already exists
-  // Get today's date in "YYYY-MM-DD" format
-  const userStatIndex = user?.userStat?.findIndex(stat =>
-   isToday(stat?._createdAt)
-  )
-  console.log(userStatIndex)
-  if (userStatIndex === -1) {
+  if (!stats) {
    // Create a new stats document for today's userStat
    const statsTransaction = client.create({
     _type: 'stats',
     ids: [url],
     createdAt: new Date().toISOString(),
+    userId: {
+     _ref: id,
+     _type: 'reference',
+    },
     click: 1,
    })
 
    const statsDoc = await statsTransaction
-   const userTransaction = client.transaction().patch(user._id, {
-    set: {
-     userStat: [
-      ...(user.userStat || []),
-      { _type: 'reference', _ref: statsDoc._id, _key: uuidv4() },
-     ],
-    },
-   })
-
-   await userTransaction.commit()
 
    res.json({ message: 'stat_created:URL added', click: statsDoc.click })
   } else {
    // Update existing stats document for today's userStat
-   if (user?.userStat[userStatIndex]?.ids?.includes(url)) {
+   if (stats.ids?.includes(url)) {
     res.status(400).json({
      message: 'URL already exists',
-     click: user?.userStat[userStatIndex]?.click,
+     click: stats.click,
     })
     return
    }
 
-   const statsId = user.userStat[userStatIndex]._id
+   const statsId = stats._id
    const statsTransaction = await client
     .patch(statsId)
     .append('ids', [url])
@@ -171,37 +147,25 @@ exports.fetchUserStats = async (req, res) => {
 
  try {
   // Fetch the user's stats
-  const userQuery = `*[_type == "user" && _id == "${id}"] {
-      _id,
-      userStat[]-> {
-        _id,
-        click,
-        createdAt,
-      },
-    }`
-  const users = await client.fetch(userQuery)
+  const statQuery = `*[_type == "stats" && userId._ref == "${id}" && dateTime(_createdAt) > dateTime(now()) - 60*60*24]|order(_createdAt,desc)[0]`
+  const stats = await client.fetch(statQuery)
 
-  if (!users || users.length === 0) {
-   res.status(404).json({ message: 'User not found' })
-   return
-  }
+  // if (!users || users.length === 0) {
+  //  res.status(404).json({ message: 'User not found' })
+  //  return
+  // }
 
-  const user = users[0]
+  // const user = users[0]
 
-  if (!user.userStat) {
-   user.userStat = []
-  }
+  // if (!user.userStat) {
+  //  user.userStat = []
+  // }
 
   // Get today's userStat if it exists
-  const todayStat = user.userStat.find(stat => isToday(stat.createdAt))
-  console.log(todayStat, user.userStat)
+  // const todayStat = user.userStat.find(stat => isToday(stat.createdAt))
+  // console.log(todayStat, user.userStat)
   const clickData = {
-   totalClicks: todayStat ? todayStat.click : 0,
-   stats: user.userStat.map(stat => ({
-    id: stat._id,
-    click: stat.click,
-    createdAt: stat.createdAt,
-   })),
+   totalClicks: stats ? stats.click : 0,
   }
 
   res.json(clickData)
